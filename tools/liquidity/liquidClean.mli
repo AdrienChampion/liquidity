@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 val clean_code : loc_michelson -> loc_michelson
 val clean_contract : loc_michelson_contract -> loc_michelson_contract

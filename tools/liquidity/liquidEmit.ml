@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 let i ~loc exp = {
   ins = exp;

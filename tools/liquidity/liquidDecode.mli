@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 (** Decode a contract. Recover Liquidity constructs from their encoded
     version (with {!LiquidEncode.encode_contract} ). *)

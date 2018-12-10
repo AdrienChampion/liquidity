@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 open Michelson_Tezos
 open Micheline
 

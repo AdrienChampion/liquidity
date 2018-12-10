@@ -11,9 +11,9 @@
    * rename variables STRING/NUM into valid OCaml identifiers.
 *)
 
-open LiquidTypes
+open Liquid.Types
 
-let mk ~loc desc ty = LiquidTypesOps.mk ~loc desc ty
+let mk ~loc desc ty = Liquid.Expr.mk ~loc desc ty
 
 type env = {
   env_map : string StringMap.t;

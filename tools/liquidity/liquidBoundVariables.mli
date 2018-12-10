@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 (** Compute free variables of an expression *)
 val bv : ('a, 'b) exp -> StringSet.t

@@ -6,7 +6,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 (** Initializer *)
 type init =

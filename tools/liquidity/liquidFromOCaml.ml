@@ -10,7 +10,7 @@
 (* We use '\231' as suffix for integers and floats to encode the "tz"
     suffix.  *)
 
-open LiquidTypes
+open Liquid.Types
 open LiquidOCamlParser
 
 type 'a ast_elt =
@@ -283,7 +283,7 @@ let rec translate_type env ?expected typ =
       | _ -> None
     in
     let elt_type = translate_type env ?expected param_type in
-    if not @@ LiquidTypesOps.comparable_type elt_type then
+    if not @@ Liquid.DTypes.is_comparable elt_type then
       error_loc ptyp_loc
         "type %S is not comparable, it cannot be used as element of a set"
         (LiquidPrinter.Liquid.string_of_type elt_type);
@@ -306,7 +306,7 @@ let rec translate_type env ?expected typ =
       | _ -> None, None
     in
     let key_type = translate_type env ?expected:expected1 key_type in
-    if not @@ LiquidTypesOps.comparable_type key_type then
+    if not @@ Liquid.DTypes.is_comparable key_type then
       error_loc ptyp_loc
         "type %S is not comparable, it cannot be used as key in a map"
         (LiquidPrinter.Liquid.string_of_type key_type);
@@ -321,7 +321,7 @@ let rec translate_type env ?expected typ =
       | _ -> None, None
     in
     let key_type = translate_type env ?expected:expected1 key_type in
-    if not @@ LiquidTypesOps.comparable_type key_type then
+    if not @@ Liquid.DTypes.is_comparable key_type then
       error_loc ptyp_loc
         "type %S is not comparable, it cannot be used as key in a big map"
         (LiquidPrinter.Liquid.string_of_type key_type);
@@ -354,7 +354,7 @@ let rec translate_type env ?expected typ =
       | _ -> assert false
     in
     begin
-      try Tcontract (LiquidTypesOps.find_contract_type contract_type_name env)
+      try Tcontract (Liquid.Env.Find.contract_type contract_type_name env)
       with Not_found ->
         unbound_contract_type typ.ptyp_loc contract_type_name
     end
@@ -362,7 +362,7 @@ let rec translate_type env ?expected typ =
   | { ptyp_desc = Ptyp_constr ({ txt = ty_name }, []) } ->
     let ty_name = str_of_id ty_name in
     begin
-      try LiquidTypesOps.find_type ty_name env
+      try Liquid.Env.Find.dtype ty_name env
       with Not_found -> unbound_type typ.ptyp_loc ty_name
     end
 
@@ -505,7 +505,7 @@ let rec translate_const env exp =
         let ty =
           match head_ty, tail_ty with
           | Some head_ty, Some (Tlist tail_ty) ->
-            if not @@ LiquidTypesOps.eq_types head_ty tail_ty then
+            if not @@ Liquid.DTypes.eq head_ty tail_ty then
               error_loc exp.pexp_loc "inconsistent types in list";
             Some (Tlist head_ty)
           | Some head_ty, None ->
@@ -617,7 +617,7 @@ let rec translate_const env exp =
     let lid = str_of_id lid in
     begin
       try
-        let ty_name, tya = LiquidTypesOps.find_constr lid env in
+        let ty_name, tya = Liquid.Env.Find.constr lid env in
         let c =
           match args with
           | None -> CUnit
@@ -635,7 +635,7 @@ let rec translate_const env exp =
                * end;
                * c *)
         in
-        let ty = LiquidTypesOps.find_type ty_name env in
+        let ty = Liquid.Env.Find.dtype ty_name env in
         CConstr (lid, c), Some ty
       with Not_found -> raise NotAConstant
     end
@@ -646,7 +646,7 @@ let rec translate_const env exp =
           try
             let label = str_of_id label in
             let loc = loc_of_loc exp.pexp_loc in
-            let _, _, ty' = LiquidTypesOps.find_label label env in
+            let _, _, ty' = Liquid.Env.Find.label label env in
             let c, ty_opt = translate_const env exp in
             (* begin match ty_opt with
              * | None -> ()
@@ -666,8 +666,8 @@ let rec translate_const env exp =
       | [] -> error_loc exp.pexp_loc "empty record"
       | (label, _) :: _ ->
         try
-          let ty_name, _, _ = LiquidTypesOps.find_label label env in
-          LiquidTypesOps.find_type ty_name env
+          let ty_name, _, _ = Liquid.Env.Find.label label env in
+          Liquid.Env.Find.dtype ty_name env
         with Not_found -> error_loc exp.pexp_loc "unknown label %s" label
     in
     CRecord lab_x_exp_list, Some ty
@@ -702,7 +702,7 @@ and translate_pair exp =
   | _ -> error_loc exp.pexp_loc "pair expected"
 
 
-let mk ~loc desc = LiquidTypesOps.mk ~loc desc ()
+let mk ~loc desc = Liquid.Expr.mk ~loc desc ()
 
 let vars_info_pat env pat =
   let rec vars_info_pat_aux acc indexes = function
@@ -796,7 +796,7 @@ let translate_record ty_name labels env =
       (fun i pld ->
          let label = pld.pld_name.txt in
          try
-           LiquidTypesOps.find_label label env |> ignore;
+           Liquid.Env.Find.label label env |> ignore;
            error_loc pld.pld_loc "label %s already defined" label;
          with Not_found ->
            let ty = translate_type env pld.pld_type in
@@ -812,7 +812,7 @@ let translate_variant ty_name constrs env =
       (fun pcd ->
          let constr = pcd.pcd_name.txt in
          try
-           LiquidTypesOps.find_constr constr env |> ignore;
+           Liquid.Env.Find.constr constr env |> ignore;
            error_loc pcd.pcd_loc "constructor %s already defined" constr;
          with Not_found ->
            let ty = match pcd.pcd_args with
@@ -1027,7 +1027,7 @@ let rec translate_code contracts env exp =
               Nolabel, addr_exp;
             ]) }
       when StringMap.mem contract_name contracts ->
-      let c_sig = LiquidTypesOps.sig_of_contract (StringMap.find contract_name contracts) in
+      let c_sig = Liquid.Contracts.to_sig (StringMap.find contract_name contracts) in
       ContractAt { arg =  translate_code contracts env addr_exp; c_sig }
 
     | { pexp_desc =
@@ -1193,7 +1193,7 @@ let rec translate_code contracts env exp =
       let body = translate_code contracts env body in
       let arg = translate_code contracts env arg in
       let arg_name, _, body = deconstruct_pat env pat body in
-      let prim = LiquidTypesOps.fold_primitive_of_string (iter_coll^".iter") in
+      let prim = Liquid.Prims.Fold.of_string (iter_coll^".iter") in
       let acc = mk ~loc (Const { ty = Tunit; const =  CUnit }) in
       Fold { prim; arg_name; body; arg; acc }
 
@@ -1209,7 +1209,7 @@ let rec translate_code contracts env exp =
       let acc = translate_code contracts env acc in
       let body = translate_code contracts env body in
       let arg_name, _, body = deconstruct_pat env pat body in
-      let prim = LiquidTypesOps.fold_primitive_of_string (iter_coll^".fold") in
+      let prim = Liquid.Prims.Fold.of_string (iter_coll^".fold") in
       Fold { prim; arg_name; body; arg; acc }
 
     | { pexp_desc =
@@ -1222,7 +1222,7 @@ let rec translate_code contracts env exp =
       let arg = translate_code contracts env arg in
       let body = translate_code contracts env body in
       let arg_name, _, body = deconstruct_pat env pat body in
-      let prim = LiquidTypesOps.map_primitive_of_string (map_coll^".map") in
+      let prim = Liquid.Prims.Map.of_string (map_coll^".map") in
       Map { prim; arg_name; body; arg }
 
     | { pexp_desc =
@@ -1237,7 +1237,7 @@ let rec translate_code contracts env exp =
       let acc = translate_code contracts env acc in
       let body = translate_code contracts env body in
       let arg_name, _, body = deconstruct_pat env pat body in
-      let prim = LiquidTypesOps.map_fold_primitive_of_string (map_fold_coll^".map_fold") in
+      let prim = Liquid.Prims.Map.Fold.of_string (map_fold_coll^".map_fold") in
       MapFold { prim; arg_name; body; arg; acc }
 
     | { pexp_desc =
@@ -1255,7 +1255,7 @@ let rec translate_code contracts env exp =
       let arg_var = mk ~loc:vloc (Var arg_name) in
       let body = mk ~loc (Apply { prim = Prim_exec; args = [arg_var; f] }) in
       let arg = translate_code contracts env arg in
-      let prim = LiquidTypesOps.fold_primitive_of_string (iter_coll^".iter") in
+      let prim = Liquid.Prims.Fold.of_string (iter_coll^".iter") in
       let acc = mk ~loc (Const { ty = Tunit; const =  CUnit }) in
       let arg_name = { nname = arg_name ; nloc = vloc } in
       Fold { prim; arg_name; body; arg; acc }
@@ -1277,7 +1277,7 @@ let rec translate_code contracts env exp =
       let body = mk ~loc (Apply { prim = Prim_exec; args = [arg_var; f] }) in
       let arg = translate_code contracts env arg in
       let acc = translate_code contracts env acc in
-      let prim = LiquidTypesOps.fold_primitive_of_string (iter_coll^".fold") in
+      let prim = Liquid.Prims.Fold.of_string (iter_coll^".fold") in
       let arg_name = { nname = arg_name ; nloc = vloc } in
       Fold { prim; arg_name; body; arg; acc }
 
@@ -1296,7 +1296,7 @@ let rec translate_code contracts env exp =
       let arg_var = mk ~loc:vloc (Var arg_name) in
       let body = mk ~loc (Apply { prim = Prim_exec; args = [arg_var; f] }) in
       let arg = translate_code contracts env arg in
-      let prim = LiquidTypesOps.map_primitive_of_string (map_coll^".map") in
+      let prim = Liquid.Prims.Map.of_string (map_coll^".map") in
       let arg_name = { nname = arg_name ; nloc = vloc } in
       Map { prim; arg_name; body; arg }
 
@@ -1318,7 +1318,7 @@ let rec translate_code contracts env exp =
       let arg = translate_code contracts env arg in
       let acc = translate_code contracts env acc in
       let prim =
-        LiquidTypesOps.map_fold_primitive_of_string (map_fold_coll^".map_fold") in
+        Liquid.Prims.Map.Fold.of_string (map_fold_coll^".map_fold") in
       let arg_name = { nname = arg_name ; nloc = vloc } in
       MapFold { prim; arg_name; body; arg; acc }
 
@@ -1469,7 +1469,7 @@ let rec translate_code contracts env exp =
           let lid = str_of_id lid in
           begin
             try
-              let (_ty_name, _ty) = LiquidTypesOps.find_constr lid env in
+              let (_ty_name, _ty) = Liquid.Env.Find.constr lid env in
               Constructor { constr = Constr lid;
                             arg = match args with
                               | None ->
@@ -1625,8 +1625,8 @@ and translate_entry name env contracts head_exp mk_parameter mk_storage =
       match storage_pat.ppat_desc with
       | Ppat_constraint _ ->
         begin try
-            let s = LiquidTypesOps.find_type "storage" env in
-            if not @@ LiquidTypesOps.eq_types s storage_ty then
+            let s = Liquid.Env.Find.dtype "storage" env in
+            if not @@ Liquid.DTypes.eq s storage_ty then
               LiquidLoc.raise_error ~loc:storage_name.nloc
                 "storage argument %s for entry point %s must be the same type \
                  as contract storage" storage_name.nname name;
@@ -1651,8 +1651,8 @@ and translate_entry name env contracts head_exp mk_parameter mk_storage =
   | { pexp_desc = Pexp_constraint (head_exp, return_type); pexp_loc } ->
     begin match translate_type env return_type with
       | Ttuple [ ret_ty; sto_ty ] ->
-        let storage = LiquidTypesOps.find_type "storage" env in
-        if not @@ LiquidTypesOps.eq_types sto_ty storage then
+        let storage = Liquid.Env.Find.dtype "storage" env in
+        if not @@ Liquid.DTypes.eq sto_ty storage then
           error_loc pexp_loc
             "Second component of return type must be identical to storage type";
         if ret_ty <> Tlist Toperation then
@@ -1800,7 +1800,7 @@ and translate_signature contract_type_name env acc ast =
                pval_loc;
              }}
          ]), [])} :: ast ->
-    if LiquidTypesOps.is_reserved entry_name then
+    if Liquid.Idents.is_reserved entry_name then
       error_loc name_loc "entry point %S forbidden" entry_name;
     if List.exists (fun e -> e.entry_name = entry_name) acc then
       error_loc name_loc "entry point %S is already declared" entry_name;
@@ -1879,7 +1879,7 @@ and translate_structure env acc ast : syntax_contract option =
           pval_name = { txt = prim_name; loc = prim_loc };
           pval_type = prim_type; pval_prim = [minst];
           pval_attributes = prim_attr } } :: ast ->
-     if LiquidTypesOps.is_reserved prim_name then
+     if Liquid.Idents.is_reserved prim_name then
        error_loc prim_loc "Primitive name %S forbidden" prim_name;
      if StringMap.mem prim_name env.ext_prims then
        error_loc prim_loc "Primitive %S already defined" prim_name;
@@ -1956,7 +1956,7 @@ and translate_structure env acc ast : syntax_contract option =
                      ]) } ]
            ), []) } :: ast
     ->
-    if LiquidTypesOps.is_reserved name then
+    if Liquid.Idents.is_reserved name then
       error_loc name_loc "entry point %S forbidden" name;
     if List.exists (function
         | Syn_entry e -> e.entry_sig.entry_name = name
@@ -1980,7 +1980,7 @@ and translate_structure env acc ast : syntax_contract option =
     let inline = match attrs with
       | [ { txt = "inline"} , PStr [] ] -> true
       | _ -> false in
-    if LiquidTypesOps.is_reserved var_name then
+    if Liquid.Idents.is_reserved var_name then
       error_loc name_loc "top-level value %S forbidden" var_name;
     if StringMap.mem var_name env.ext_prims then
       error_loc name_loc "Top-level identifier %S already defined" var_name;
@@ -2021,7 +2021,7 @@ and translate_structure env acc ast : syntax_contract option =
     let inline = match attrs with
       | [ { txt = "inline"} , PStr [] ] -> true
       | _ -> false in
-    if LiquidTypesOps.is_reserved fun_name then
+    if Liquid.Idents.is_reserved fun_name then
       error_loc name_loc "top-level value %S forbidden" fun_name;
     if StringMap.mem fun_name env.ext_prims then
       error_loc name_loc "Top-level identifier %S already defined" fun_name;
@@ -2195,7 +2195,7 @@ and translate_structure env acc ast : syntax_contract option =
           Some contract
         | _ ->
           let lift_type = lift_inner_env contract.ty_env in
-          let contract_sig = LiquidTypesOps.sig_of_contract contract in
+          let contract_sig = Liquid.Contracts.to_sig contract in
           let contract_sig =
             { sig_name = Some contract_name;
               entries_sig = List.map (fun es ->
@@ -2308,7 +2308,7 @@ let predefined_contract_types =
   List.fold_left (fun acc (name, cty) ->
       StringMap.add name cty acc
     ) StringMap.empty [
-    "UnitContract", LiquidTypesOps.unit_contract_sig;
+    "UnitContract", Liquid.Contracts.unit_sig;
   ]
 
 
@@ -2429,7 +2429,7 @@ let translate_multi l =
                   Format.eprintf "Contract %s@." contract.contract_name;
               end;
               let lift_type = lift_inner_env env in
-              let contract_sig = LiquidTypesOps.sig_of_contract contract in
+              let contract_sig = Liquid.Contracts.to_sig contract in
               let contract_sig =
                 { sig_name = Some contract.contract_name;
                   entries_sig = List.map (fun es ->

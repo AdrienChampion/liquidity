@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 type loc_table = (int * (LiquidTypes.location * string option)) list
 

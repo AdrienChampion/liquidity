@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 let counter = ref 0
 let nodes = Hashtbl.create 1000
@@ -68,7 +68,7 @@ let unsanitize_gen_name s =
 
 let unsanitize_name s =
   let s = unsanitize_gen_name s in
-  if LiquidTypesOps.is_reserved s || LiquidTypesOps.has_reserved_prefix s then
+  if Liquid.Idents.is_reserved s || Liquid.Idents.has_reserved_prefix s then
     s ^ "_"
   else if String.length s > 0 then
     match s.[0] with
@@ -218,7 +218,7 @@ let rec constrlabel_is_in_type c = function
     List.exists (fun (_, t) -> constrlabel_is_in_type c t) l
   | Tcontract s ->
     List.exists (fun e ->
-        c = LiquidTypesOps.prefix_entry e.entry_name ||
+        c = Liquid.Idents.Entry.add_prefix e.entry_name ||
         constrlabel_is_in_type c e.parameter)
       s.entries_sig
   | Tvar _ -> false

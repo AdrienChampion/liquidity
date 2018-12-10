@@ -7,9 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
-
-
+open Liquid.Types
 
 let size_of_type = function
   | Ttuple l -> List.length l
@@ -131,9 +129,6 @@ let sig_of_full_sig s = {
   sig_name = s.f_sig_name;
   entries_sig = s.f_entries_sig;
 }
-
-
-(** Parsing/printing of Liquidity primitives *)
 
 let primitive_of_string = Hashtbl.create 101
 let string_of_primitive = Hashtbl.create 101
@@ -356,9 +351,6 @@ let string_of_map_fold_primitive prim =
     Printf.eprintf "Debug: string_of_map_fold_primitive(%d) raised Not_found\n%!"
       (Obj.magic prim : int);
     raise Not_found
-
-
-
 
 (** Smart constructor for Liquidity expressions *)
 let mk =

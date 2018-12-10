@@ -9,7 +9,7 @@
 
 (* Michelson code generation *)
 
-open LiquidTypes
+open Liquid.Types
 
 type env = {
   vars : int StringMap.t;
@@ -459,7 +459,7 @@ let rec translate_code ~parameter_name ~storage_name code =
 
     | Prim_tuple_get,
       [arg; { desc = Const { const = CInt n | CNat n }}] ->
-      let size = LiquidTypesOps.size_of_type arg.ty in
+      let size = Liquid.DTypes.size arg.ty in
       let arg = compile depth env arg in
       let n = LiquidPrinter.int_of_integer n in
       let ins =
@@ -475,7 +475,7 @@ let rec translate_code ~parameter_name ~storage_name code =
       [x; { desc = Const { const = CInt n | CNat n }}; y ] ->
       let x_code = compile depth env x in
       let n = LiquidPrinter.int_of_integer n in
-      let size = LiquidTypesOps.size_of_type x.ty in
+      let size = Liquid.DTypes.size x.ty in
       let is_last = size = n + 1 in
       let set_code = compile_tuple_set ~loc is_last (depth+1) env n y in
       x_code @ set_code
@@ -645,7 +645,7 @@ let rec translate_code ~parameter_name ~storage_name code =
           | Prim_not|Prim_abs|Prim_int|Prim_neg|Prim_lsr|Prim_lsl|Prim_is_nat
           | Prim_exec|Prim_Cons|Prim_set_delegate|Prim_address),n ->
           Printf.eprintf "Primitive %S: wrong number of args(%d)\n%!"
-            (LiquidTypesOps.string_of_primitive prim)
+            (Liquid.Prims.to_string prim)
             n;
           assert false
         (*                           | prim, args -> *)
@@ -659,7 +659,7 @@ let rec translate_code ~parameter_name ~storage_name code =
           | Prim_concat|Prim_concat_two), _ ->
           (* already filtered out *)
           Printf.eprintf "Primitive %S ?\n%!"
-            (LiquidTypesOps.string_of_primitive prim)
+            (Liquid.Prims.to_string prim)
           ;
           assert false
 

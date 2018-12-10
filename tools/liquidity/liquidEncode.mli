@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 val encode_type : ?decompiling:bool -> datatype -> datatype
 

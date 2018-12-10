@@ -6,7 +6,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 type init =
   | Init_constant of LiquidTypes.const
@@ -14,15 +14,15 @@ type init =
                   LiquidTypes.loc_michelson_contract)
 
 let c_empty_op ~loc =
-  LiquidTypesOps.mk ~loc (Const { ty = Tlist Toperation; const = CList []}) (Tlist Toperation)
+  Liquid.Expr.mk ~loc (Const { ty = Tlist Toperation; const = CList []}) (Tlist Toperation)
 let mk_nat ~loc i =
-  LiquidTypesOps.mk ~loc
+  Liquid.Expr.mk ~loc
     (Const { ty = Tnat; const = CNat (LiquidPrinter.integer_of_int i) })
     Tnat
 
 let rec subst_empty_big_map storage_ty code =
   let empty_big_map loc =
-    let storage_var = LiquidTypesOps.mk ~loc (Var "_storage") storage_ty (* dummy *) in
+    let storage_var = Liquid.Expr.mk ~loc (Var "_storage") storage_ty (* dummy *) in
     Apply { prim = Prim_tuple_get; args = [storage_var; mk_nat ~loc 0] }
   in
   let desc = code.desc in
@@ -150,7 +150,7 @@ let rec subst_empty_big_map storage_ty code =
                      | Prim_create_account ) as p } ->
       LiquidLoc.raise_error ~loc
         "%s forbidden in initializer (for this version of Tezos)"
-        (LiquidTypesOps.string_of_primitive p)
+        (Liquid.Prims.to_string p)
 
     | Apply { prim = Prim_unknown;
               args = { desc = Var (("Current.source" | "Curent.sender") as p);
@@ -225,8 +225,8 @@ let tmp_contract_of_init ~loc env (init : encoded_exp LiquidTypes.init) storage_
   let parameter, code = match init.init_args with
     | [] -> Tunit, init.init_body
     | [arg, loc, ty] ->
-      let parameter_var = LiquidTypesOps.mk ~loc (Var "_parameter") ty in
-      let code = LiquidTypesOps.mk ~loc
+      let parameter_var = Liquid.Expr.mk ~loc (Var "_parameter") ty in
+      let code = Liquid.Expr.mk ~loc
           (Let { bnd_var = { nname = arg; nloc = loc };
                  inline = false;
                  bnd_val = parameter_var;
@@ -234,13 +234,13 @@ let tmp_contract_of_init ~loc env (init : encoded_exp LiquidTypes.init) storage_
       ty, code
     | args ->
       let parameter = Ttuple (List.map (fun (_,_,ty) -> ty) args) in
-      let parameter_var = LiquidTypesOps.mk ~loc (Var "_parameter") parameter in
+      let parameter_var = Liquid.Expr.mk ~loc (Var "_parameter") parameter in
       let code, _ = List.fold_right (fun (arg, loc, ty) (code, i) ->
           let i = i - 1 in
-          let code = LiquidTypesOps.mk ~loc (
+          let code = Liquid.Expr.mk ~loc (
               Let { bnd_var = { nname = arg; nloc = loc };
                     inline = false;
-                    bnd_val = LiquidTypesOps.mk ~loc (Apply {
+                    bnd_val = Liquid.Expr.mk ~loc (Apply {
                         prim = Prim_tuple_get;
                         args = [parameter_var; mk_nat ~loc i] })
                         ty;
@@ -254,7 +254,7 @@ let tmp_contract_of_init ~loc env (init : encoded_exp LiquidTypes.init) storage_
   (* Empty big map is fetched in given storage which is always empty *)
   let code = subst_empty_big_map storage_ty code in
   let code =
-    LiquidTypesOps.mk ~loc (Apply { prim = Prim_tuple;
+    Liquid.Expr.mk ~loc (Apply { prim = Prim_tuple;
                      args = [ c_empty_op ~loc; code ] })
       (Ttuple [(Tlist Toperation); code.ty]) in
   { contract_name = "_dummy_init";

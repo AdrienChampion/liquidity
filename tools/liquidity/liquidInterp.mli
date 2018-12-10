@@ -7,6 +7,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 val interp : loc_michelson_contract -> node_contract

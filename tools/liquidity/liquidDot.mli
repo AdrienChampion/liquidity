@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 (** Generate graph representation (in dot graphviz format) from a
     decompiled symbolic evaluated Michelson contract. *)

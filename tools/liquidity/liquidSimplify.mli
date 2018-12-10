@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 (** Simplify a Liquidity contract, mostly inlining and some simple
     simplifications. *)

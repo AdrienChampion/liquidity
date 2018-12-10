@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 
 
@@ -26,7 +26,7 @@ let rec bv code =
             args = ({ desc = Var name } :: args) } ->
     let set =
       try
-        LiquidTypesOps.primitive_of_string name |> ignore;
+        Liquid.Prims.of_string name |> ignore;
         StringSet.empty
       with Not_found -> StringSet.singleton name
     in
@@ -177,7 +177,7 @@ let rec bound code =
     let args = List.map bound args in
     let bv =
       try
-        LiquidTypesOps.primitive_of_string name |> ignore;
+        Liquid.Prims.of_string name |> ignore;
         StringSet.empty
       with Not_found -> StringSet.singleton name
     in

@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 let noloc env = LiquidLoc.loc_in_file env.env.filename
 
@@ -15,13 +15,13 @@ let error loc msg =
   LiquidLoc.raise_error ~loc ("Type error: " ^^ msg ^^ "%!")
 
 let mk_typed ?name ~loc (desc: (datatype, typed) exp_desc) ty =
-  LiquidTypesOps.mk ?name ~loc desc ty
+  Liquid.Expr.mk ?name ~loc desc ty
 let mk ?name ~loc (desc: (datatype, encoded) exp_desc) ty =
   let name = match name with
     | Some n when n.[0] <> '_' -> name
     | _ -> None
   in
-  LiquidTypesOps.mk ?name ~loc desc ty
+  Liquid.Expr.mk ?name ~loc desc ty
 
 let mk_typed_nat ~loc i =
   mk_typed ~loc
@@ -253,7 +253,7 @@ and encode_contract_sig csig =
   | entries ->
     Tsum ("_entries",
           List.map (fun { entry_name; parameter = t } ->
-              (LiquidTypesOps.prefix_entry entry_name, t)
+              (Liquid.Idents.Entry.add_prefix entry_name, t)
             ) entries)
 
 (* returns true if the type has a big map anywhere *)
@@ -326,8 +326,8 @@ let rec encode_const env c = match c with
   | CConstr (constr, x) when env.decompiling ->
     CConstr (constr, encode_const env x)
 
-  | CConstr (constr, x) when LiquidTypesOps.is_entry_case constr ->
-    let entry_name = LiquidTypesOps.entry_name_of_case constr in
+  | CConstr (constr, x) when Liquid.Idents.Entry.is_prefixed constr ->
+    let entry_name = Liquid.Idents.Entry.name_of_prefixed constr in
     let rec iter entries =
       match entries with
       | [] -> assert false
@@ -343,8 +343,8 @@ let rec encode_const env c = match c with
 
   | CConstr (constr, x) ->
     try
-      let ty_name, _ = LiquidTypesOps.find_constr constr env.env in
-      let constr_ty = LiquidTypesOps.find_type ty_name env.env in
+      let ty_name, _ = Liquid.Env.Find.constr constr env.env in
+      let constr_ty = Liquid.Env.Find.dtype ty_name env.env in
       match constr_ty with
       | Tsum (_, constrs) ->
         let rec iter constrs =
@@ -368,7 +368,7 @@ let rec encode_const env c = match c with
    expressions. For instance (Set [op]) is turned into
    Set.add op (Set : operation set) *)
 let rec deconstify env loc ty c =
-  if not @@ LiquidTypesOps.type_contains_nonlambda_operation ty then
+  if not @@ Liquid.DTypes.contains_nonlambda_operation ty then
     mk ~loc (Const { ty; const = c }) ty
   else match c, (encode_type ~decompiling:env.decompiling ty) with
     | (CUnit | CBool _ | CInt _ | CNat _ | CTez _ | CTimestamp _ | CString _
@@ -583,7 +583,7 @@ let rec encode env ( exp : typed_exp ) : encoded_exp =
             | _ -> false
           -> arg
         | Some entry ->
-          let constr = LiquidTypesOps.prefix_entry entry in
+          let constr = Liquid.Idents.Entry.add_prefix entry in
           let rec iter entries =
             match entries with
             | [] -> assert false
@@ -596,7 +596,7 @@ let rec encode env ( exp : typed_exp ) : encoded_exp =
                 | [ e ] -> e.parameter
                 | _ ->
                   let cstrs =
-                    List.map (fun e -> LiquidTypesOps.prefix_entry e.entry_name, e.parameter)
+                    List.map (fun e -> Liquid.Idents.Entry.add_prefix e.entry_name, e.parameter)
                       entries in
                   Tsum ("", cstrs)
               in
@@ -869,9 +869,9 @@ let rec encode env ( exp : typed_exp ) : encoded_exp =
     mk ?name:exp.name ~loc desc exp.ty
 
   | Constructor { constr = Constr constr; arg } ->
-    let ty_name, arg_ty = LiquidTypesOps.find_constr constr env.env in
+    let ty_name, arg_ty = Liquid.Env.Find.constr constr env.env in
     let arg = encode env arg in
-    let constr_ty = LiquidTypesOps.find_type ty_name env.env in
+    let constr_ty = Liquid.Env.Find.dtype ty_name env.env in
     let exp =
       match constr_ty with
       | Tsum (_, constrs) ->
@@ -1124,10 +1124,10 @@ and encode_contract ?(annot=false) ?(decompiling=false) contract =
       force_inline = ref StringMap.empty;
       env = contract.ty_env;
       clos_env = None;
-      t_contract_sig = LiquidTypesOps.full_sig_of_contract contract;
+      t_contract_sig = Liquid.Contracts.to_full_sig contract;
     } in
 
-  let parameter = encode_contract_sig (LiquidTypesOps.sig_of_full_sig env.t_contract_sig) in
+  let parameter = encode_contract_sig (Liquid.Contracts.sig_of_full_sig env.t_contract_sig) in
   let loc = LiquidLoc.loc_in_file env.env.filename in
   let rec values_on_top l exp = match l with
     | [] -> exp
@@ -1142,7 +1142,7 @@ and encode_contract ?(annot=false) ?(decompiling=false) contract =
       MatchVariant {
         arg = parameter;
         cases = List.map (fun e ->
-            let constr = LiquidTypesOps.prefix_entry e.entry_sig.entry_name in
+            let constr = Liquid.Idents.Entry.add_prefix e.entry_sig.entry_name in
             env.env.constrs <-
               StringMap.add constr ("_entries", e.entry_sig.parameter)
                 env.env.constrs;

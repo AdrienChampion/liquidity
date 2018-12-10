@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 open Ocamldot.TYPES
 
 let subgraph_counter = ref 0

@@ -6,7 +6,8 @@
 (*    All rights reserved. No warranty, explicit or implicit, provided.   *)
 (*                                                                        *)
 (**************************************************************************)
-open LiquidTypes
+
+open Liquid.Types
 open Michelson_Tezos
 
 type expr = string Micheline.canonical
@@ -26,7 +27,7 @@ let empty_env filename = {
   loc_table = IntMap.empty;
   type_annots = Hashtbl.create 17;
   types = [];
-  contract_types = ["UnitContract", LiquidTypesOps.unit_contract_sig];
+  contract_types = ["UnitContract", Liquid.Contracts.unit_sig];
   annoted = false;
 }
 

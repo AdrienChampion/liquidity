@@ -9,7 +9,7 @@
 
 (** Michelson code generation *)
 
-open LiquidTypes
+open Liquid.Types
 
 (** Compile contract to intermediate michelson representation *)
 val translate : encoded_contract -> loc_michelson_contract

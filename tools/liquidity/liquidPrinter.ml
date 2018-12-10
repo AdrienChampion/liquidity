@@ -7,7 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 let milion = Z.of_int 1_000_000
 
@@ -1073,7 +1073,7 @@ module Liquid = struct
       bprint_code_rec ~debug b indent2 arg;
     | Apply { prim; args } ->
       Printf.bprintf b "\n%s(%s" indent
-        (LiquidTypesOps.string_of_primitive prim);
+        (Liquid.Prims.to_string prim);
       let indent2 = indent ^ "  " in
       List.iter (fun exp ->
           Printf.bprintf b " ";
@@ -1171,7 +1171,7 @@ module Liquid = struct
       let indent2 = indent ^ "  " in
       let indent4 = indent2 ^ "  " in
       Printf.bprintf b "\n%s%s (fun %s -> "
-        indent (LiquidTypesOps.string_of_fold_primitive prim) arg_name.nname;
+        indent (Liquid.Prims.Fold.to_string prim) arg_name.nname;
       bprint_code_rec ~debug b indent4 body;
       Printf.bprintf b ")\n%s" indent2;
       bprint_code_rec ~debug b indent2 arg;
@@ -1180,7 +1180,7 @@ module Liquid = struct
       let indent2 = indent ^ "  " in
       let indent4 = indent2 ^ "  " in
       Printf.bprintf b "\n%s%s (fun %s -> "
-        indent (LiquidTypesOps.string_of_fold_primitive prim) arg_name.nname;
+        indent (Liquid.Prims.Fold.to_string prim) arg_name.nname;
       bprint_code_rec ~debug b indent4 body;
       Printf.bprintf b ")\n%s" indent2;
       bprint_code_rec ~debug b indent2 arg;
@@ -1190,7 +1190,7 @@ module Liquid = struct
       let indent2 = indent ^ "  " in
       let indent4 = indent2 ^ "  " in
       Printf.bprintf b "\n%s%s (fun %s -> "
-        indent (LiquidTypesOps.string_of_map_primitive prim) arg_name.nname;
+        indent (Liquid.Prims.Map.to_string prim) arg_name.nname;
       bprint_code_rec ~debug b indent4 body;
       Printf.bprintf b ")\n%s" indent2;
       bprint_code_rec ~debug b indent2 arg;
@@ -1199,7 +1199,7 @@ module Liquid = struct
       let indent2 = indent ^ "  " in
       let indent4 = indent2 ^ "  " in
       Printf.bprintf b "\n%s%s (fun %s -> "
-        indent (LiquidTypesOps.string_of_map_fold_primitive prim) arg_name.nname;
+        indent (Liquid.Prims.Map.Fold.to_string prim) arg_name.nname;
       bprint_code_rec ~debug b indent4 body;
       Printf.bprintf b ")\n%s" indent2;
       bprint_code_rec ~debug b indent2 arg;

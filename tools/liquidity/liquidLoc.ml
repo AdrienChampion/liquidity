@@ -7,9 +7,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
-open LiquidTypesOps
-
+open Liquid.Types
 
 let pp_ksprintf ?before k fmt = (* From Location in OCaml *)
   let buf = Buffer.create 64 in
@@ -25,7 +23,7 @@ let pp_ksprintf ?before k fmt = (* From Location in OCaml *)
        k msg)
     ppf fmt
 
-let noloc = noloc
+let noloc = Liquid.noloc
 
 let raise_error ?(loc=noloc) =
   pp_ksprintf (fun msg -> raise (LiquidError { err_loc = loc;

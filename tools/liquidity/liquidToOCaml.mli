@@ -10,7 +10,7 @@
 (** Convert Liquidity code and constants as OCaml AST objects for neat
     pretty printing. *)
 
-open LiquidTypes
+open Liquid.Types
 
 val output_version : string
 

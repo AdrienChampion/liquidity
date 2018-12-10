@@ -9,7 +9,7 @@
 
 (** Pretty-printing of Liquidity and Michelson, code and values *)
 
-open LiquidTypes
+open Liquid.Types
 
 (** {2 Helper conversion function } *)
 

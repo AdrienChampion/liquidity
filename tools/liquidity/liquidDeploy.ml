@@ -6,7 +6,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 open Michelson_Tezos (* for crypto *)
 
 type from =
@@ -502,7 +502,7 @@ let compile_liquid liquid =
       List.map (fun f -> f, LiquidFromOCaml.read_file f) files
   in
   let syntax_ast = LiquidFromOCaml.translate_multi ocaml_asts in
-  let contract_sig = LiquidTypesOps.full_sig_of_contract syntax_ast in
+  let contract_sig = Liquid.Contracts.to_full_sig syntax_ast in
   let typed_ast = LiquidCheck.typecheck_contract
       ~warnings:true ~decompiling:false syntax_ast in
   let encoded_ast, to_inline =
@@ -779,7 +779,7 @@ let run ~debug liquid entry_name input_string storage_string =
     with Not_found ->
       invalid_arg @@ "Contract has no entry point " ^ entry_name
   in
-  let contract_sig = LiquidTypesOps.full_sig_of_contract contract in
+  let contract_sig = Liquid.Contracts.to_full_sig contract in
   let input =
     LiquidData.translate { contract.ty_env with filename = "run_input" }
       contract_sig input_string entry.entry_sig.parameter
@@ -787,7 +787,7 @@ let run ~debug liquid entry_name input_string storage_string =
   let parameter = match contract_sig.f_entries_sig with
     | [_] -> input
     | _ -> LiquidEncode.encode_const contract.ty_env contract_sig
-             (CConstr (LiquidTypesOps.prefix_entry entry_name, input)) in
+             (CConstr (Liquid.Idents.Entry.add_prefix entry_name, input)) in
   let storage =
     LiquidData.translate { contract.ty_env with filename = "run_storage" }
       contract_sig storage_string contract.storage
@@ -858,7 +858,7 @@ let init_storage ?source liquid init_params_strings =
     | None -> !LiquidOptions.source
   in
   let syntax_ast, pre_michelson, pre_init_infos = compile_liquid liquid in
-  let contract_sig = LiquidTypesOps.full_sig_of_contract syntax_ast in
+  let contract_sig = Liquid.Contracts.to_full_sig syntax_ast in
   let pre_init, init_infos = match pre_init_infos with
     | None -> raise (ResponseError "init_storage: Missing init")
     | Some pre_init_infos -> pre_init_infos
@@ -1116,7 +1116,7 @@ let forge_call ?head ?source ?public_key
     | None, None -> raise (ResponseError "forge_call: Missing source")
   in
   let contract, pre_michelson, pre_init_infos = compile_liquid liquid in
-  let contract_sig = LiquidTypesOps.full_sig_of_contract contract in
+  let contract_sig = Liquid.Contracts.to_full_sig contract in
   let entry =
     try
       List.find (fun e -> e.entry_sig.entry_name = entry_name) contract.entries
@@ -1130,7 +1130,7 @@ let forge_call ?head ?source ?public_key
   let parameter = match contract_sig.f_entries_sig with
     | [_] -> input
     | _ -> LiquidEncode.encode_const contract.ty_env contract_sig
-             (CConstr (LiquidTypesOps.prefix_entry entry_name, input)) in
+             (CConstr (Liquid.Idents.Entry.add_prefix entry_name, input)) in
   let _, loc_table =
     LiquidToTezos.convert_contract ~expand:true pre_michelson in
   let parameter_m = LiquidToTezos.convert_const parameter in

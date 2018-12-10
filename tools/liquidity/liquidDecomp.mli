@@ -7,6 +7,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open LiquidTypes
+open Liquid.Types
 
 val decompile : LiquidTezosTypes.env -> node_contract -> syntax_contract

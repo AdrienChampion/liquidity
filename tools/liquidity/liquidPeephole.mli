@@ -13,6 +13,6 @@
     For now, mostly, move [DIP_DROP]s backwards to decrease the size of
     the stack. *)
 
-open LiquidTypes
+open Liquid.Types
 
 val simplify : loc_michelson_contract -> loc_michelson_contract

@@ -12,7 +12,7 @@
    site. It could dramatically decrease the size of the stack.  *)
 
 
-open LiquidTypes
+open Liquid.Types
 
 exception Bad_arg
 
@@ -82,7 +82,7 @@ let compile_liquid_files files =
     | None -> ()
     | Some init ->
       match LiquidInit.compile_liquid_init live_ast.ty_env
-              (LiquidTypesOps.full_sig_of_contract syntax_ast) init with
+              (Liquid.Contracts.to_full_sig syntax_ast) init with
       | LiquidInit.Init_constant c_init when !LiquidOptions.json ->
         let s = LiquidToTezos.(json_of_const @@ convert_const c_init) in
         let output = outprefix ^ ".init.json" in
@@ -284,7 +284,7 @@ let translate () =
   (* first, extract the types *)
   let contract = LiquidFromOCaml.translate_multi ocaml_asts in
   let _ = LiquidCheck.typecheck_contract ~warnings:true contract in
-  let contract_sig = LiquidTypesOps.full_sig_of_contract contract in
+  let contract_sig = Liquid.Contracts.to_full_sig contract in
   let entry =
     try
       List.find (fun e -> e.entry_sig.entry_name = entry_name)
@@ -299,7 +299,7 @@ let translate () =
   let parameter_const = match contract_sig.f_entries_sig with
     | [_] -> input
     | _ -> LiquidEncode.encode_const contract.ty_env contract_sig
-             (CConstr (LiquidTypesOps.prefix_entry entry_name, input)) in
+             (CConstr (Liquid.Idents.Entry.add_prefix entry_name, input)) in
   let to_str mic_data =
     if !LiquidOptions.json then
       LiquidToTezos.(json_of_const @@ convert_const mic_data)
@@ -448,7 +448,7 @@ let forge_call () =
 
 let parse_tez_to_string expl amount =
   match LiquidData.translate (LiquidFromOCaml.initial_env expl)
-          LiquidTypesOps.dummy_contract_sig amount Ttez
+          Liquid.Contracts.dummy_sig amount Ttez
   with
   | CTez t ->
     let mutez = match t.mutez with

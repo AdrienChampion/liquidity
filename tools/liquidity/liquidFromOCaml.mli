@@ -9,7 +9,7 @@
 
 (** Parsing from OCaml AST to Liquidity AST *)
 
-open LiquidTypes
+open Liquid.Types
 
 val predefined_types : datatype StringMap.t
 val predefined_contract_types : contract_sig StringMap.t

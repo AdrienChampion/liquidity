@@ -5,7 +5,8 @@
 (*    All rights reserved. No warranty, explicit or implicit, provided.   *)
 (*                                                                        *)
 (**************************************************************************)
-open LiquidTypes
+
+open Liquid.Types
 
 type from =
   | From_strings of string list
