@@ -13,7 +13,7 @@
 
 open LiquidTypes
 
-let mk ~loc desc ty = mk ~loc desc ty
+let mk ~loc desc ty = LiquidTypesOps.mk ~loc desc ty
 
 type env = {
   env_map : string StringMap.t;

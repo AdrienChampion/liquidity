@@ -68,7 +68,7 @@ let unsanitize_gen_name s =
 
 let unsanitize_name s =
   let s = unsanitize_gen_name s in
-  if List.mem s reserved_keywords || has_reserved_prefix s then
+  if LiquidTypesOps.is_reserved s || LiquidTypesOps.has_reserved_prefix s then
     s ^ "_"
   else if String.length s > 0 then
     match s.[0] with
@@ -218,7 +218,7 @@ let rec constrlabel_is_in_type c = function
     List.exists (fun (_, t) -> constrlabel_is_in_type c t) l
   | Tcontract s ->
     List.exists (fun e ->
-        c = prefix_entry ^ e.entry_name ||
+        c = LiquidTypesOps.prefix_entry e.entry_name ||
         constrlabel_is_in_type c e.parameter)
       s.entries_sig
   | Tvar _ -> false

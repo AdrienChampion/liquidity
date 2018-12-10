@@ -190,7 +190,7 @@ and convert_contract_sig ~abbrev csig =
       | Some _ as acc -> acc
       | None ->
         match csig'.sig_name with
-        | Some name when eq_types (Tcontract csig') (Tcontract csig) ->
+        | Some name when LiquidTypesOps.eq_types (Tcontract csig') (Tcontract csig) ->
           Some (typ_constr (name ^ ".instance") [])
         | _ -> None
     ) LiquidFromOCaml.predefined_contract_types None in
@@ -280,7 +280,7 @@ let convert_primitive prim args =
   | Prim_or, x :: _ when x.ty = Tnat -> "lor"
   | Prim_xor, x :: _ when x.ty = Tnat -> "lxor"
   | Prim_not, [x] when x.ty = Tnat || x.ty = Tint -> "lnot"
-  | _ -> LiquidTypes.string_of_primitive prim
+  | _ -> LiquidTypesOps.string_of_primitive prim
 
 
 let rec convert_code ~abbrev (expr : (datatype, 'a) exp) =
@@ -478,14 +478,14 @@ let rec convert_code ~abbrev (expr : (datatype, 'a) exp) =
                args = [{ desc = Var iter_arg }; f] }};
            arg } when iter_arg = arg_name.nname ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_fold_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_fold_primitive prim)))
       [ Nolabel, convert_code ~abbrev f;
         Nolabel, convert_code ~abbrev arg;
       ]
   | Fold { prim = (Prim_map_iter|Prim_set_iter|Prim_list_iter as prim);
            arg_name; body; arg } ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_fold_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_fold_primitive prim)))
       [
         Nolabel, Exp.fun_ Nolabel None
           (pat_of_lname arg_name)
@@ -498,7 +498,7 @@ let rec convert_code ~abbrev (expr : (datatype, 'a) exp) =
                args = [{ desc = Var iter_arg }; f] }};
            arg; acc } when iter_arg = arg_name.nname ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_fold_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_fold_primitive prim)))
       [
         Nolabel, convert_code ~abbrev f;
         Nolabel, convert_code ~abbrev arg;
@@ -506,7 +506,7 @@ let rec convert_code ~abbrev (expr : (datatype, 'a) exp) =
       ]
   | Fold { prim; arg_name; body; arg; acc } ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_fold_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_fold_primitive prim)))
       [
         Nolabel, Exp.fun_ Nolabel None
           (pat_of_lname arg_name)
@@ -521,14 +521,14 @@ let rec convert_code ~abbrev (expr : (datatype, 'a) exp) =
               args = [{ desc = Var map_arg }; f] }};
           arg } when map_arg = arg_name.nname ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_map_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_map_primitive prim)))
       [
         Nolabel, convert_code ~abbrev f;
         Nolabel, convert_code ~abbrev arg;
       ]
   | Map { prim; arg_name; body; arg } ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_map_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_map_primitive prim)))
       [
         Nolabel, Exp.fun_ Nolabel None
           (pat_of_lname arg_name)
@@ -542,7 +542,7 @@ let rec convert_code ~abbrev (expr : (datatype, 'a) exp) =
                   args = [{ desc = Var map_arg }; f] }};
               arg; acc } when map_arg = arg_name.nname ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_map_fold_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_map_fold_primitive prim)))
       [
         Nolabel, convert_code ~abbrev f;
         Nolabel, convert_code ~abbrev arg;
@@ -550,7 +550,7 @@ let rec convert_code ~abbrev (expr : (datatype, 'a) exp) =
       ]
   | MapFold { prim; arg_name; body; arg; acc } ->
     Exp.apply ~loc
-      (Exp.ident (lid (LiquidTypes.string_of_map_fold_primitive prim)))
+      (Exp.ident (lid (LiquidTypesOps.string_of_map_fold_primitive prim)))
       [
         Nolabel, Exp.fun_ Nolabel None
           (pat_of_lname arg_name)

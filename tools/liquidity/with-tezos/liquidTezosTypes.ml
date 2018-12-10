@@ -26,7 +26,7 @@ let empty_env filename = {
   loc_table = IntMap.empty;
   type_annots = Hashtbl.create 17;
   types = [];
-  contract_types = ["UnitContract", unit_contract_sig];
+  contract_types = ["UnitContract", LiquidTypesOps.unit_contract_sig];
   annoted = false;
 }
 

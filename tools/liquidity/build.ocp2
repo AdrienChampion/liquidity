@@ -48,6 +48,7 @@ OCaml.library("ocplib-liquidity-base",
        "liquidMisc.ml";
 
        "liquidTypes.ml";
+       "liquidTypesOps";
        "liquidLoc.ml";
 
        "liquidBoundVariables.ml";

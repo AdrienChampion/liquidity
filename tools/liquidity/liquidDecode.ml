@@ -9,7 +9,7 @@
 
 open LiquidTypes
 
-let mk ?name ~loc (desc: (datatype, typed) exp_desc) ty = mk ?name ~loc desc ty
+let mk ?name ~loc (desc: (datatype, typed) exp_desc) ty = LiquidTypesOps.mk ?name ~loc desc ty
 
 let rec decode ( exp : encoded_exp ) : typed_exp =
   let loc = exp.loc in
@@ -55,8 +55,8 @@ let rec decode ( exp : encoded_exp ) : typed_exp =
     let amount = decode amount in
     let contract = decode contract in
     let desc = match entry, arg.desc with
-      | None, Constructor { constr = Constr c; arg } when is_entry_case c ->
-        let entry = Some (entry_name_of_case c) in
+      | None, Constructor { constr = Constr c; arg } when LiquidTypesOps.is_entry_case c ->
+        let entry = Some (LiquidTypesOps.entry_name_of_case c) in
         let arg = decode arg in
         Call { contract; amount; entry; arg }
       | _, _ ->
@@ -198,8 +198,8 @@ and entry_of_case param_constrs top_storage (pat, body) =
     Let { bnd_var = { nname = storage_name };
           bnd_val = { desc = Var var_storage };
           body = code }
-    when is_entry_case s && var_storage = top_storage ->
-    let entry_name = entry_name_of_case s in
+    when LiquidTypesOps.is_entry_case s && var_storage = top_storage ->
+    let entry_name = LiquidTypesOps.entry_name_of_case s in
     let parameter = List.assoc s param_constrs in
     {
       entry_sig = {
@@ -211,8 +211,8 @@ and entry_of_case param_constrs top_storage (pat, body) =
       code = decode code;
     }
   | CConstr (s, [parameter_name]), _
-    when is_entry_case s ->
-    let entry_name = entry_name_of_case s in
+    when LiquidTypesOps.is_entry_case s ->
+    let entry_name = LiquidTypesOps.entry_name_of_case s in
     let parameter = List.assoc s param_constrs in
     {
       entry_sig = {
@@ -233,7 +233,7 @@ and decode_entries param_constrs top_parameter top_storage values exp =
   | MatchVariant { arg = { desc = Var var_parameter}; cases }
     when var_parameter = top_parameter &&
          List.for_all (function
-             | CConstr (s, _), _ -> is_entry_case s
+             | CConstr (s, _), _ -> LiquidTypesOps.is_entry_case s
              | _ -> false) cases
     ->
     List.rev values, List.map (entry_of_case param_constrs top_storage) cases

@@ -86,11 +86,11 @@ let rec compute decompile code to_inline =
       begin match record.desc, set_val.desc with
         | SetField s, Project p
           when s.field <> field && p.field = field &&
-               eq_syntax_exp s.record p.record ->
+               LiquidTypesOps.eq_syntax_exp s.record p.record ->
           (* (s.f1 <- v1).f2 <- s.f2  ==>  s.f1 <- v1 *)
           record
         | _, Project p
-          when p.field = field && eq_syntax_exp p.record record ->
+          when p.field = field && LiquidTypesOps.eq_syntax_exp p.record record ->
           (* s.f <- s.f  ==>  s *)
           record
         | _, _ -> { exp with desc = SetField { record; field; set_val } }

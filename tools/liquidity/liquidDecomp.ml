@@ -11,7 +11,7 @@ open LiquidTypes
 
 let noloc = LiquidLoc.noloc
 
-let mk ?name ~loc desc = mk ?name ~loc desc ()
+let mk ?name ~loc desc = LiquidTypesOps.mk ?name ~loc desc ()
 
 let const_name_of_datatype = function
   | Tunit -> "u"
@@ -424,7 +424,7 @@ let rec decompile contract =
 
       | N_CONTRACT ty, [arg] ->
         mklet node (ContractAt { arg = arg_of arg;
-                                 c_sig = contract_sig_of_param ty })
+                                 c_sig = LiquidTypesOps.contract_sig_of_param ty })
 
       | N_UNPACK ty, [arg] ->
         mklet node (Unpack { arg = arg_of arg; ty })
@@ -610,8 +610,8 @@ let rec decompile contract =
 
       | N_CALL, [contract; amount; arg] ->
         let entry, arg = match arg.kind, arg.args with
-          | N_CONSTR c, [arg] when is_entry_case c ->
-            Some (entry_name_of_case c), arg
+          | N_CONSTR c, [arg] when LiquidTypesOps.is_entry_case c ->
+            Some (LiquidTypesOps.entry_name_of_case c), arg
           | _ -> None, arg in
         mklet node
           (Call { contract = arg_of contract;
@@ -626,7 +626,7 @@ let rec decompile contract =
           match node.node_name with
           | None -> "Contract" ^ string_of_int node.num
           | Some s ->
-            try contract_name_of_annot s
+            try LiquidTypesOps.contract_name_of_annot s
             with _ -> "Contract" ^ string_of_int node.num in
         let contract = { (decompile contract) with contract_name } in
         mklet node

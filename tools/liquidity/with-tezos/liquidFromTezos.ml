@@ -269,7 +269,7 @@ let name_of_annots annots =
 
 let sanitize_name ~allow_capital s =
   let s = LiquidMisc.string_replace s '.' '_' in
-  if List.mem s reserved_keywords || has_reserved_prefix s then
+  if LiquidTypesOps.is_reserved s || LiquidTypesOps.has_reserved_prefix s then
     s ^ "_"
   else if String.length s > 0 then
     match s.[0] with
@@ -362,9 +362,9 @@ let rec convert_type env expr =
       let parameter = convert_type env x in
       let entries_sig = match parameter with
         | Tsum (_, constrs)
-          when List.for_all (fun (s, _) -> is_entry_case s) constrs ->
+          when List.for_all (fun (s, _) -> LiquidTypesOps.is_entry_case s) constrs ->
           List.map (fun (s, ty) ->
-              { entry_name = entry_name_of_case s;
+              { entry_name = LiquidTypesOps.entry_name_of_case s;
                 parameter = ty;
                 parameter_name = "parameter";
                 storage_name = "storage" }
@@ -378,7 +378,7 @@ let rec convert_type env expr =
       let c_sig = { sig_name; entries_sig } in
       begin match
           sig_name,
-          List.find_opt (fun (n, c_sig') -> eq_signature c_sig c_sig')
+          List.find_opt (fun (n, c_sig') -> LiquidTypesOps.eq_signature c_sig c_sig')
             env.contract_types
         with
         | None, None -> Tcontract c_sig

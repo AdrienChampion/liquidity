@@ -25,9 +25,9 @@ let error loc msg =
 
 (* Two types are comparable if they are equal and of a comparable type *)
 let check_comparable loc prim ty1 ty2 =
-  if not (comparable_type ty1 && eq_types ty1 ty2) then
+  if not (LiquidTypesOps.comparable_type ty1 && LiquidTypesOps.eq_types ty1 ty2) then
     error loc "arguments of %s not comparable: %s\nwith\n%s\n"
-      (LiquidTypes.string_of_primitive prim)
+      (LiquidTypesOps.string_of_primitive prim)
       (LiquidPrinter.Liquid.string_of_type ty1)
       (LiquidPrinter.Liquid.string_of_type ty2)
 
@@ -64,7 +64,7 @@ let find_var ?(count_used=true) env loc name =
     let (name, ty, effect) = StringMap.find name env.vars in
     let count = StringMap.find name env.vars_counts in
     if count_used then incr count;
-    { (mk (Var name) ~loc ty) with effect }
+    { (LiquidTypesOps.mk (Var name) ~loc ty) with effect }
   with Not_found ->
     error loc "unbound variable %S" name
 
@@ -74,7 +74,7 @@ let eq_exp env (e1 : typed_exp) (e2 : typed_exp) =
       try let (v, _, _) = StringMap.find v1 env.vars in v
       with Not_found -> error (noloc env) "unbound variable %S" v in
     get v1 = get v2 in
-  eq_typed_exp eq_var e1 e2
+  LiquidTypesOps.eq_typed_exp eq_var e1 e2
 
 let type_error loc msg actual expected =
   error loc "%s.\nExpected type:\n  %s\nActual type:\n  %s"
@@ -84,7 +84,7 @@ let type_error loc msg actual expected =
 
 
 let error_prim loc prim args expected_args =
-  let prim = LiquidTypes.string_of_primitive prim in
+  let prim = LiquidTypesOps.string_of_primitive prim in
   let nargs = List.length args in
   let nexpected = List.length expected_args in
   if nargs <> nexpected then
@@ -109,10 +109,10 @@ let error_prim loc prim args expected_args =
    signature was generated before otherwise use the same name as the
    contract for its signature *)
 let sig_of_contract contract =
-  let c_sig = sig_of_contract contract in
+  let c_sig = LiquidTypesOps.sig_of_contract contract in
   let sig_name = StringMap.fold (fun name c_sig' -> function
       | Some _ as acc -> acc
-      | None -> if eq_signature c_sig' c_sig then Some name else None
+      | None -> if LiquidTypesOps.eq_signature c_sig' c_sig then Some name else None
     ) contract.ty_env.contract_types None in
   let sig_name = match sig_name with
     | None -> Some contract.contract_name
@@ -176,7 +176,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
   match exp.desc with
 
   | Const { ty; const } ->
-    mk ?name:exp.name ~loc (Const { ty; const }) (ty:datatype)
+    LiquidTypesOps.mk ?name:exp.name ~loc (Const { ty; const }) (ty:datatype)
 
   | Let { bnd_var; inline; bnd_val; body } ->
     let bnd_val = typecheck env bnd_val in
@@ -187,7 +187,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     let body = typecheck env body in
     let desc = Let { bnd_var; inline; bnd_val; body } in
     check_used env bnd_var count;
-    mk ?name:exp.name ~loc desc body.ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc body.ty
 
   | Var v -> find_var env loc v
 
@@ -205,23 +205,23 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
                  (LiquidPrinter.Liquid.string_of_type rty)
                  field
     in
-    mk ?name:exp.name ~loc (Project { field; record }) ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Project { field; record }) ty
 
   | SetField { record; field; set_val } ->
     let record = typecheck env record in
     let exp_ty =
       let ty_name, _, ty =
-        try find_label field env.env
+        try LiquidTypesOps.find_label field env.env
         with Not_found -> error loc "unbound record field %S" field
       in
-      let record_ty = find_type ty_name env.env in
-      if not @@ eq_types record.ty record_ty then
+      let record_ty = LiquidTypesOps.find_type ty_name env.env in
+      if not @@ LiquidTypesOps.eq_types record.ty record_ty then
         error loc "field %s does not belong to type %s" field
           (LiquidPrinter.Liquid.string_of_type record.ty);
       ty
     in
     let set_val = typecheck_expected "field update" env exp_ty set_val in
-    mk ?name:exp.name ~loc (SetField { record; field; set_val }) record.ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (SetField { record; field; set_val }) record.ty
 
   | Seq (exp1, exp2) ->
     let exp1 = typecheck_expected "sequence" env Tunit exp1 in
@@ -229,7 +229,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     let exp2 = typecheck env exp2 in
     let desc = Seq (exp1, exp2) in
     (* TODO: if not fail1 then remove exp1 *)
-    mk ?name:exp.name ~loc desc exp2.ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc exp2.ty
 
   | If { cond; ifthen; ifelse } ->
     let cond =
@@ -245,13 +245,13 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
         ifelse, ifthen.ty
     in
     let desc = If { cond; ifthen; ifelse } in
-    mk ?name:exp.name ~loc desc ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc ty
 
   | Transfer { dest; amount } ->
     let amount = typecheck_expected "transfer amount" env Ttez amount in
     let dest = typecheck_expected "transfer destination" env Tkey_hash dest in
     let desc = Transfer { dest; amount } in
-    mk ?name:exp.name ~loc desc Toperation
+    LiquidTypesOps.mk ?name:exp.name ~loc desc Toperation
 
   | Call { contract; amount; entry; arg } ->
     let amount = typecheck_expected "call amount" env Ttez amount in
@@ -268,7 +268,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
             if amount.transfer || contract.transfer || arg.transfer then
               error loc "transfer within transfer arguments";
             let desc = Call { contract; amount; entry; arg } in
-            mk ?name:exp.name ~loc desc Toperation
+            LiquidTypesOps.mk ?name:exp.name ~loc desc Toperation
           with Not_found ->
             error loc "contract has no entry point %s" entry';
         end
@@ -288,7 +288,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       | _ -> false
     ->
     typecheck env
-      (mk (Call { contract; amount; entry = Some entry; arg = param })
+      (LiquidTypesOps.mk (Call { contract; amount; entry = Some entry; arg = param })
          ~loc ())
 
   | Apply { prim = Prim_unknown;
@@ -317,23 +317,23 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       with Invalid_argument _ ->
         error loc "Expecting %d type arguments, got %d\n"
           (List.length eprim.tvs) (List.length targs) in
-    let atys = List.map (tv_subst tsubst) eprim.atys in
-    let rty = tv_subst tsubst eprim.rty in
+    let atys = List.map (LiquidTypesOps.tv_subst tsubst) eprim.atys in
+    let rty = LiquidTypesOps.tv_subst tsubst eprim.rty in
     let prim = Prim_extension (prim_name, eprim.effect, targs,
                                eprim.nb_arg, eprim.nb_ret, eprim.minst) in
     begin try List.iter2 (fun a aty ->
-      if not (eq_types a.ty aty) then
+      if not (LiquidTypesOps.eq_types a.ty aty) then
         error loc "Bad %d args for primitive %S:\n    %s\n"
-          (List.length args) (LiquidTypes.string_of_primitive prim)
+          (List.length args) (LiquidTypesOps.string_of_primitive prim)
           (String.concat "\n    " (List.map (fun arg ->
             LiquidPrinter.Liquid.string_of_type arg.ty) args))
       ) args atys
     with Invalid_argument _ ->
       error loc "Primitive %S expects %d arguments, was given %d"
-        (LiquidTypes.string_of_primitive prim)
+        (LiquidTypesOps.string_of_primitive prim)
         (List.length eprim.atys) (List.length args)
     end;
-    mk ?name:exp.name ~loc (Apply { prim; args }) rty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Apply { prim; args }) rty
 
   (* <unknown> (prim, args) -> prim args *)
   | Apply { prim = Prim_unknown;
@@ -341,7 +341,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     when not (StringMap.mem name env.vars) ->
     let prim =
       try
-        LiquidTypes.primitive_of_string name
+        LiquidTypesOps.primitive_of_string name
       with Not_found ->
         error loc "Unknown identifier %S" name
     in
@@ -361,7 +361,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
 
   | Failwith arg ->
     let arg = typecheck env arg in
-    mk (Failwith arg) ~loc Tfail (* no name *)
+    LiquidTypesOps.mk (Failwith arg) ~loc Tfail (* no name *)
 
   | MatchOption { arg; ifnone; some_name; ifsome } ->
     let arg = typecheck env arg in
@@ -379,11 +379,11 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       match ifnone.ty, ifsome.ty with
       | ty, Tfail | Tfail, ty -> ty
       | ty1, ty2 ->
-        if not @@ eq_types ty1 ty2 then
+        if not @@ LiquidTypesOps.eq_types ty1 ty2 then
           type_error loc "branches of match have different types" ty2 ty1;
         ty1
     in
-    mk ?name:exp.name ~loc desc ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc ty
 
   | MatchNat { arg; plus_name; ifplus; minus_name; ifminus } ->
     let arg = typecheck_expected "match%nat" env Tint arg in
@@ -398,12 +398,12 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       match ifplus.ty, ifminus.ty with
       | ty, Tfail | Tfail, ty -> ty
       | ty1, ty2 ->
-        if not @@ eq_types ty1 ty2 then
+        if not @@ LiquidTypesOps.eq_types ty1 ty2 then
           type_error loc "branches of match%nat must have the same type"
             ty2 ty1;
         ty1
     in
-    mk ?name:exp.name ~loc desc ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc ty
 
   | Loop { arg_name; body; arg } ->
     let arg = typecheck env arg in
@@ -412,7 +412,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     let body =
       typecheck_expected "Loop.loop body" env (Ttuple [Tbool; arg.ty]) body in
     check_used env arg_name count;
-    mk ?name:exp.name ~loc (Loop { arg_name; body; arg }) arg.ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Loop { arg_name; body; arg }) arg.ty
 
   | LoopLeft { arg_name; body; arg; acc = Some acc } ->
     let arg = typecheck env arg in
@@ -422,12 +422,12 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     let body = typecheck env body in
     let res_ty = match body.ty with
       | Ttuple [Tor (left_ty, right_ty); acc_ty] ->
-        if not @@ eq_types acc_ty acc.ty then
+        if not @@ LiquidTypesOps.eq_types acc_ty acc.ty then
           error acc.loc
             "Loop.left accumulator must be %s, got %s"
             (LiquidPrinter.Liquid.string_of_type acc_ty)
             (LiquidPrinter.Liquid.string_of_type acc.ty);
-        if not @@ eq_types left_ty arg.ty then
+        if not @@ LiquidTypesOps.eq_types left_ty arg.ty then
           error arg.loc
             "Loop.left argument must be %s, got %s"
             (LiquidPrinter.Liquid.string_of_type left_ty)
@@ -438,7 +438,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
           "Loop.left body must be of type (('a, 'b) variant * 'c), \
            got %s instead" (LiquidPrinter.Liquid.string_of_type body.ty) in
     check_used env arg_name count;
-    mk ?name:exp.name ~loc (LoopLeft { arg_name; body; arg; acc = Some acc })
+    LiquidTypesOps.mk ?name:exp.name ~loc (LoopLeft { arg_name; body; arg; acc = Some acc })
       (Ttuple [res_ty; acc.ty])
 
   | LoopLeft { arg_name; body; arg; acc = None } ->
@@ -447,7 +447,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     let body = typecheck env body in
     let res_ty = match body.ty with
       | Tor (left_ty, right_ty) ->
-        if not @@ eq_types left_ty arg.ty then
+        if not @@ LiquidTypesOps.eq_types left_ty arg.ty then
           error arg.loc
             "Loop.left argument must be %s, got %s"
             (LiquidPrinter.Liquid.string_of_type left_ty)
@@ -458,7 +458,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
           "Loop.left body must be of type ('a, 'b) variant, \
            got %s instead" (LiquidPrinter.Liquid.string_of_type body.ty) in
     check_used env arg_name count;
-    mk ?name:exp.name ~loc (LoopLeft { arg_name; body; arg; acc = None }) res_ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (LoopLeft { arg_name; body; arg; acc = None }) res_ty
 
   (* For collections, replace generic primitives with their typed ones *)
 
@@ -482,14 +482,14 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
 
       | _ ->
         error arg.loc "%s expects a collection, got %s"
-          (LiquidTypes.string_of_fold_primitive prim)
+          (LiquidTypesOps.string_of_fold_primitive prim)
           (LiquidPrinter.Liquid.string_of_type arg.ty)
     in
     let (env, count) = new_binding env arg_name.nname arg_ty in
     let body = typecheck_expected
-        (LiquidTypes.string_of_fold_primitive prim ^" body") env acc.ty body in
+        (LiquidTypesOps.string_of_fold_primitive prim ^" body") env acc.ty body in
     check_used env arg_name count;
-    mk ?name:exp.name ~loc (Fold { prim; arg_name; body; arg; acc }) acc.ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Fold { prim; arg_name; body; arg; acc }) acc.ty
 
   | Map { prim; arg_name; body; arg } ->
     let arg = typecheck env arg in
@@ -502,7 +502,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
         Prim_list_map, elt_ty
       | _ ->
         error arg.loc "%s expects a collection, got %s"
-          (LiquidTypes.string_of_map_primitive prim)
+          (LiquidTypesOps.string_of_map_primitive prim)
           (LiquidPrinter.Liquid.string_of_type arg.ty)
     in
     let (env, count) = new_binding env arg_name.nname arg_ty in
@@ -514,7 +514,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       | _ -> assert false
     in
     check_used env arg_name count;
-    mk ?name:exp.name ~loc (Map { prim; arg_name; body; arg }) ret_ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Map { prim; arg_name; body; arg }) ret_ty
 
   | MapFold { prim; arg_name; body; arg; acc } ->
     let arg = typecheck env arg in
@@ -528,17 +528,17 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
         Prim_list_map_fold, Ttuple[elt_ty; acc_ty]
       | _ ->
         error arg.loc "%s expects a collection, got %s"
-          (LiquidTypes.string_of_map_fold_primitive prim)
+          (LiquidTypesOps.string_of_map_fold_primitive prim)
           (LiquidPrinter.Liquid.string_of_type arg.ty)
     in
     let (env, count) = new_binding env arg_name.nname arg_ty in
     let body = typecheck env body in
     let body_r = match body.ty with
-      | Ttuple [r; baccty] when eq_types baccty acc.ty -> r
+      | Ttuple [r; baccty] when LiquidTypesOps.eq_types baccty acc.ty -> r
       | _ ->
         error body.loc
           "body of %s must be of type 'a * %s, but has type %s"
-          (LiquidTypes.string_of_map_fold_primitive prim)
+          (LiquidTypesOps.string_of_map_fold_primitive prim)
           (LiquidPrinter.Liquid.string_of_type acc.ty)
           (LiquidPrinter.Liquid.string_of_type body.ty)
     in
@@ -549,7 +549,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       | _ -> assert false
     in
     check_used env arg_name count;
-    mk ?name:exp.name ~loc (MapFold { prim; arg_name; body; arg; acc })
+    LiquidTypesOps.mk ?name:exp.name ~loc (MapFold { prim; arg_name; body; arg; acc })
       (Ttuple [ret_ty; acc.ty])
 
   | MatchList { arg; head_name; tail_name; ifcons; ifnil } ->
@@ -570,12 +570,12 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       match ifnil.ty, ifcons.ty with
       | ty, Tfail | Tfail, ty -> ty
       | ty1, ty2 ->
-        if not @@ eq_types ty1 ty2 then
+        if not @@ LiquidTypesOps.eq_types ty1 ty2 then
           type_error loc "branches of match must have the same type"
             ty2 ty1;
         ty1
     in
-    mk ?name:exp.name ~loc desc ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc ty
 
   | Lambda { arg_name; arg_ty; body; ret_ty; recursive = None } ->
     (* allow closures at typechecking, do not reset env *)
@@ -585,7 +585,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     let desc =
       Lambda { arg_name; arg_ty; body; ret_ty = body.ty; recursive = None } in
     let ty = Tlambda (arg_ty, body.ty) in
-    mk ?name:exp.name ~loc desc ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc ty
 
   | Lambda { arg_name; arg_ty; body; ret_ty;
              recursive = (Some f as recursive) } ->
@@ -596,7 +596,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
     check_used env arg_name arg_count;
     check_used env { nname = f; nloc = loc} f_count;
     let desc = Lambda { arg_name; arg_ty; body; ret_ty; recursive } in
-    mk ?name:exp.name ~loc desc ty
+    LiquidTypesOps.mk ?name:exp.name ~loc desc ty
 
   (* This cannot be produced by parsing *)
   | Closure _ -> assert false
@@ -606,16 +606,16 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
 
   | Record (( (label, _) :: _ ) as lab_x_exp_list) ->
     let ty_name, _, _ =
-      try find_label label env.env
+      try LiquidTypesOps.find_label label env.env
       with Not_found -> error loc "unbound label %S" label
     in
-    let record_ty = find_type ty_name env.env in
+    let record_ty = LiquidTypesOps.find_type ty_name env.env in
     let labels = match record_ty with
       | Trecord (_, rtys) -> List.map fst rtys
       | _ -> assert false in
     let fields = List.map (fun (label, exp) ->
         let ty_name', _, ty = try
-            find_label label env.env
+            LiquidTypesOps.find_label label env.env
           with Not_found -> error loc "unbound label %S" label
         in
         if ty_name <> ty_name' then error loc "inconsistent list of labels";
@@ -627,7 +627,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
         try List.find (fun (l', _) -> l = l') fields
         with Not_found -> error loc "label %s is not defined" l;
       ) labels in
-    mk ?name:exp.name ~loc (Record fields) record_ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Record fields) record_ty
 
   (* TODO
      | Constructor(loc, Constr constr, arg)
@@ -643,15 +643,15 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       env.env.constrs <-
         StringMap.add constr (ty_name, arg.ty) env.env.constrs;
       env.env.types <- StringMap.add ty_name constr_ty env.env.types;
-      mk ?name:exp.name ~loc (Constructor(loc, Constr constr, arg)) constr_ty
+      LiquidTypesOps.mk ?name:exp.name ~loc (Constructor(loc, Constr constr, arg)) constr_ty
   *)
 
   | Constructor { constr = Constr constr; arg } ->
     begin try
-        let ty_name, arg_ty = find_constr constr env.env in
+        let ty_name, arg_ty = LiquidTypesOps.find_constr constr env.env in
         let arg = typecheck_expected "construtor argument" env arg_ty arg in
-        let constr_ty = find_type ty_name env.env in
-        mk ?name:exp.name ~loc (Constructor { constr = Constr constr; arg })
+        let constr_ty = LiquidTypesOps.find_type ty_name env.env in
+        LiquidTypesOps.mk ?name:exp.name ~loc (Constructor { constr = Constr constr; arg })
           constr_ty
       with Not_found ->
         error loc "unbound constructor %S" constr
@@ -660,12 +660,12 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
   | Constructor { constr = Left right_ty; arg } ->
     let arg = typecheck env arg in
     let ty = Tor (arg.ty, right_ty) in
-    mk ?name:exp.name ~loc (Constructor { constr = Left right_ty; arg }) ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Constructor { constr = Left right_ty; arg }) ty
 
   | Constructor { constr = Right left_ty; arg } ->
     let arg = typecheck env arg in
     let ty = Tor (left_ty, arg.ty) in
-    mk ?name:exp.name ~loc (Constructor { constr = Right left_ty; arg }) ty
+    LiquidTypesOps.mk ?name:exp.name ~loc (Constructor { constr = Right left_ty; arg }) ty
 
   (* Typecheck and normalize pattern matching.
      - When decompiling, try to merge nested patterns
@@ -725,18 +725,18 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
         let rec normalize acc rev_cases = match rev_cases, acc with
           | [], _ -> acc
           | (_, CAny, body1) :: rev_cases, [CAny, body2]
-            when eq_syntax_exp body1 body2 ->
+            when LiquidTypesOps.eq_syntax_exp body1 body2 ->
             normalize [CAny, body1] rev_cases
           | (_, CAny, body1) :: rev_cases, [CConstr (_, vars2), body2]
-            when are_unbound vars2 body2 && eq_syntax_exp body1 body2 ->
+            when are_unbound vars2 body2 && LiquidTypesOps.eq_syntax_exp body1 body2 ->
             normalize [CAny, body1] rev_cases
           | (_, CConstr (_, vars1) , body1) :: rev_cases, [CAny, body2]
-            when are_unbound vars1 body1 && eq_syntax_exp body1 body2 ->
+            when are_unbound vars1 body1 && LiquidTypesOps.eq_syntax_exp body1 body2 ->
             normalize [CAny, body1] rev_cases
           | (_, CConstr (_, vars1) , body1) :: rev_cases,
             [CConstr (_, vars2), body2]
             when are_unbound vars1 body1 && are_unbound vars2 body2 &&
-                 eq_syntax_exp body1 body2 ->
+                 LiquidTypesOps.eq_syntax_exp body1 body2 ->
             normalize [CAny, body1] rev_cases
           | (c1, CAny, body1) :: rev_cases, _ ->
             (* body1 <> body2 *)
@@ -777,7 +777,7 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
                 add_vars_env vars var_ty
               | CConstr (constr, vars) ->
                 let ty_name', var_ty =
-                  try find_constr constr env.env
+                  try LiquidTypesOps.find_constr constr env.env
                   with Not_found -> error loc "unknown constructor %S" constr
                 in
                 (* if ty_name <> ty_name' then
@@ -811,18 +811,18 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
           | None -> Tfail
           | Some ty -> ty
         in
-        mk ?name:exp.name ~loc desc ty
+        LiquidTypesOps.mk ?name:exp.name ~loc desc ty
     end
 
   | Unpack { arg; ty } ->
     let arg = typecheck_expected "Bytes.unpack argument" env Tbytes arg in
     let desc = Unpack { arg; ty } in
-    mk ?name:exp.name ~loc desc (Toption ty)
+    LiquidTypesOps.mk ?name:exp.name ~loc desc (Toption ty)
 
   | ContractAt { arg; c_sig } ->
     let arg = typecheck_expected "Contract.at argument" env Taddress arg in
     let desc = ContractAt { arg; c_sig } in
-    mk ?name:exp.name ~loc desc (Toption (Tcontract c_sig))
+    LiquidTypesOps.mk ?name:exp.name ~loc desc (Toption (Tcontract c_sig))
 
   | CreateContract { args; contract } ->
     let contract = typecheck_contract ~warnings:env.warnings
@@ -838,12 +838,12 @@ let rec typecheck env ( exp : syntax_exp ) : typed_exp =
       let init_balance =
         typecheck_expected "initial balance" env Ttez init_balance in
       let init_storage = typecheck_expected "initial storage"
-          env (lift_type contract.ty_env contract.storage) init_storage in
+          env (LiquidTypesOps.lift_type contract.ty_env contract.storage) init_storage in
       let desc = CreateContract {
           args = [manager; delegate; spendable;
                   delegatable; init_balance; init_storage];
           contract } in
-      mk ?name:exp.name ~loc desc (Ttuple [Toperation; Taddress])
+      LiquidTypesOps.mk ?name:exp.name ~loc desc (Ttuple [Toperation; Taddress])
     | _ ->
       error loc "Contract.create expects 7 arguments, was given %d"
         (List.length args)
@@ -899,7 +899,7 @@ and typecheck_prim1 env prim loc args =
     let expected_ty = List.nth tuple n in
     let size = List.length tuple in
     if size <= n then error loc "set outside tuple";
-    let ty = if not (eq_types ty expected_ty || ty = Tfail) then
+    let ty = if not (LiquidTypesOps.eq_types ty expected_ty || ty = Tfail) then
         error loc "prim set bad type"
       else tuple_ty
     in
@@ -989,7 +989,7 @@ and typecheck_prim2 env prim loc args =
     [ key_ty;
       (Tmap (expected_key_ty, value_ty) | Tbigmap (expected_key_ty, value_ty)) ]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Map.find key type";
     Toption value_ty
   | Prim_map_update,
@@ -998,9 +998,9 @@ and typecheck_prim2 env prim loc args =
       ( Tmap (expected_key_ty, expected_value_ty)
       | Tbigmap (expected_key_ty, expected_value_ty)) as m]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Map.update key type";
-    if not @@ eq_types expected_value_ty value_ty then
+    if not @@ LiquidTypesOps.eq_types expected_value_ty value_ty then
       error loc "bad Map.update value type";
     begin match m with
       | Tmap _ -> Tmap (key_ty, value_ty)
@@ -1013,9 +1013,9 @@ and typecheck_prim2 env prim loc args =
       ( Tmap (expected_key_ty, expected_value_ty)
       | Tbigmap (expected_key_ty, expected_value_ty)) as m]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Map.add key type";
-    if not @@ eq_types expected_value_ty value_ty then
+    if not @@ LiquidTypesOps.eq_types expected_value_ty value_ty then
       error loc "bad Map.add value type";
     begin match m with
       | Tmap _ -> Tmap (key_ty, value_ty)
@@ -1027,7 +1027,7 @@ and typecheck_prim2 env prim loc args =
       ( Tmap (expected_key_ty, value_ty)
       | Tbigmap (expected_key_ty, value_ty)) as m]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Map.remove key type";
     begin match m with
       | Tmap _ -> Tmap (key_ty, value_ty)
@@ -1039,13 +1039,13 @@ and typecheck_prim2 env prim loc args =
     [ key_ty;
       (Tmap (expected_key_ty,_) | Tbigmap (expected_key_ty,_)) ]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Mem.mem key type";
     Tbool
 
   | Prim_set_mem,[ key_ty; Tset expected_key_ty]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Set.mem key type";
     Tbool
 
@@ -1055,22 +1055,22 @@ and typecheck_prim2 env prim loc args =
 
   | Prim_set_update, [ key_ty; Tbool; Tset expected_key_ty]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Set.update key type";
     Tset key_ty
   | Prim_set_add, [ key_ty; Tset expected_key_ty]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Set.add key type";
     Tset key_ty
   | Prim_set_remove, [ key_ty; Tset expected_key_ty]
     ->
-    if not @@ eq_types expected_key_ty key_ty then
+    if not @@ LiquidTypesOps.eq_types expected_key_ty key_ty then
       error loc "bad Set.remove key type";
     Tset key_ty
 
   | Prim_Some, [ ty ] -> Toption ty
-  | Prim_self, [ Tunit ] -> Tcontract (sig_of_full_sig env.t_contract_sig)
+  | Prim_self, [ Tunit ] -> Tcontract (LiquidTypesOps.sig_of_full_sig env.t_contract_sig)
   | Prim_now, [ Tunit ] -> Ttimestamp
   | Prim_balance, [ Tunit ] -> Ttez
   | Prim_source, [ Tunit ] -> Taddress
@@ -1097,7 +1097,7 @@ and typecheck_prim2 env prim loc args =
       [ Tkey_hash; Toption Tkey_hash; Tbool; Ttez ]
 
   | Prim_default_account, [ Tkey_hash ] ->
-    Tcontract unit_contract_sig
+    Tcontract LiquidTypesOps.unit_contract_sig
 
   | Prim_set_delegate, [ Toption Tkey_hash ] ->
     Toperation
@@ -1105,7 +1105,7 @@ and typecheck_prim2 env prim loc args =
   | Prim_exec, [ ty;
                  ( Tlambda(from_ty, to_ty)
                  | Tclosure((from_ty, _), to_ty))] ->
-    if not @@ eq_types ty from_ty then
+    if not @@ LiquidTypesOps.eq_types ty from_ty then
       type_error loc "Bad argument type in function application" ty from_ty;
     to_ty
 
@@ -1119,7 +1119,7 @@ and typecheck_prim2 env prim loc args =
   | Prim_Cons, [ head_ty; Tunit ] ->
     Tlist head_ty
   | Prim_Cons, [ head_ty; Tlist tail_ty ] ->
-    if not @@ eq_types head_ty tail_ty then
+    if not @@ LiquidTypesOps.eq_types head_ty tail_ty then
       type_error loc "Bad types for list" head_ty tail_ty;
     Tlist tail_ty
 
@@ -1131,7 +1131,7 @@ and typecheck_prim2 env prim loc args =
 
   | prim, _ ->
     error loc "Bad %d args for primitive %S:\n    %s\n" (List.length args)
-      (LiquidTypes.string_of_primitive prim)
+      (LiquidTypesOps.string_of_primitive prim)
       (String.concat "\n    "
          (List.map
             (fun arg ->
@@ -1141,7 +1141,7 @@ and typecheck_prim2 env prim loc args =
 
 and typecheck_expected info env expected_ty exp =
   let exp = typecheck env exp in
-  if not @@ eq_types exp.ty expected_ty && exp.ty <> Tfail then
+  if not @@ LiquidTypesOps.eq_types exp.ty expected_ty && exp.ty <> Tfail then
     type_error exp.loc
       ("Unexpected type for "^info) exp.ty expected_ty;
   exp
@@ -1149,7 +1149,7 @@ and typecheck_expected info env expected_ty exp =
 and typecheck_apply ?name env prim loc args =
   let args = List.map (typecheck env) args in
   let prim, ty = typecheck_prim1 env prim loc args in
-  mk ?name (Apply { prim; args }) ty
+  LiquidTypesOps.mk ?name (Apply { prim; args }) ty
 
 
 and typecheck_entry env entry =
@@ -1257,7 +1257,7 @@ let rec type_of_const = function
   | CRight c -> Tor (Tunit, type_of_const c)
 
   | CKey_hash _ -> Tkey_hash
-  | CContract _ -> Tcontract unit_contract_sig
+  | CContract _ -> Tcontract LiquidTypesOps.unit_contract_sig
 
   (* XXX just for printing *)
   | CRecord _ -> Trecord ("<record>", [])

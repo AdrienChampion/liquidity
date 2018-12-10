@@ -8,6 +8,7 @@
 (**************************************************************************)
 
 open LiquidTypes
+open LiquidTypesOps
 
 
 let pp_ksprintf ?before k fmt = (* From Location in OCaml *)
