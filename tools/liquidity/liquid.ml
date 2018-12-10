@@ -378,54 +378,6 @@ module Prims = struct
     ]
 
 
-    let fold_primitive_of_string = Hashtbl.create 8
-    let string_of_fold_primitive = Hashtbl.create 8
-    let () = List.iter (
-        fun (n,p) ->
-            Hashtbl.add fold_primitive_of_string n p;
-            Hashtbl.add string_of_fold_primitive p n;
-    ) [
-        "Map.iter", Prim_map_iter;
-        "Set.iter", Prim_set_iter;
-        "List.iter", Prim_list_iter;
-        "Map.fold", Prim_map_fold;
-        "Set.fold", Prim_set_fold;
-        "List.fold", Prim_list_fold;
-        "Coll.iter", Prim_coll_iter;
-        "Coll.fold", Prim_coll_fold;
-    ]
-
-
-    let map_primitive_of_string = Hashtbl.create 4
-    let string_of_map_primitive = Hashtbl.create 4
-    let () =
-      List.iter (fun (n,p) ->
-          Hashtbl.add map_primitive_of_string n p;
-          Hashtbl.add string_of_map_primitive p n;
-        )
-        [
-          "Map.map", Prim_map_map;
-          "Set.map", Prim_set_map;
-          "List.map", Prim_list_map;
-          "Coll.map", Prim_coll_map;
-        ]
-
-
-    let map_fold_primitive_of_string = Hashtbl.create 4
-    let string_of_map_fold_primitive = Hashtbl.create 4
-    let () =
-      List.iter (fun (n,p) ->
-          Hashtbl.add map_fold_primitive_of_string n p;
-          Hashtbl.add string_of_map_fold_primitive p n;
-        )
-        [
-          "Map.map_fold", Prim_map_map_fold;
-          "Set.map_fold", Prim_set_map_fold;
-          "List.map_fold", Prim_list_map_fold;
-          "Coll.map_fold", Prim_coll_map_fold;
-        ]
-
-
 
     let of_string s = Hashtbl.find primitive_of_string s
     let to_string prim =
@@ -439,8 +391,26 @@ module Prims = struct
             Printf.eprintf "Debug: string_of_primitive(%d) raised Not_found\n%!"
                 (Obj.magic prim : int);
             raise Not_found
+    let is_primitive s = Hashtbl.mem primitive_of_string s
 
     module Fold = struct
+        let fold_primitive_of_string = Hashtbl.create 8
+        let string_of_fold_primitive = Hashtbl.create 8
+        let () = List.iter (
+            fun (n,p) ->
+                Hashtbl.add fold_primitive_of_string n p;
+                Hashtbl.add string_of_fold_primitive p n;
+        ) [
+            "Map.iter", Prim_map_iter;
+            "Set.iter", Prim_set_iter;
+            "List.iter", Prim_list_iter;
+            "Map.fold", Prim_map_fold;
+            "Set.fold", Prim_set_fold;
+            "List.fold", Prim_list_fold;
+            "Coll.iter", Prim_coll_iter;
+            "Coll.fold", Prim_coll_fold;
+        ]
+
         let of_string s = Hashtbl.find fold_primitive_of_string s
         let to_string prim =
             try
@@ -449,9 +419,21 @@ module Prims = struct
                 Printf.eprintf "Debug: string_of_fold_primitive(%d) raised Not_found\n%!"
                     (Obj.magic prim : int);
                 raise Not_found
+        let is_primitive s = Hashtbl.mem fold_primitive_of_string s
     end
 
     module Map = struct
+        let map_primitive_of_string = Hashtbl.create 4
+        let string_of_map_primitive = Hashtbl.create 4
+        let () = List.iter (fun (n,p) ->
+            Hashtbl.add map_primitive_of_string n p;
+            Hashtbl.add string_of_map_primitive p n;
+        ) [
+            "Map.map", Prim_map_map;
+            "List.map", Prim_list_map;
+            "Coll.map", Prim_coll_map;
+        ]
+
         let of_string s = Hashtbl.find map_primitive_of_string s
         let to_string prim =
             try
@@ -460,8 +442,20 @@ module Prims = struct
                 Printf.eprintf "Debug: string_of_map_primitive(%d) raised Not_found\n%!"
                     (Obj.magic prim : int);
                 raise Not_found
+        let is_primitive s = Hashtbl.mem map_primitive_of_string s
 
         module Fold = struct
+            let map_fold_primitive_of_string = Hashtbl.create 4
+            let string_of_map_fold_primitive = Hashtbl.create 4
+            let () = List.iter (fun (n,p) ->
+                Hashtbl.add map_fold_primitive_of_string n p;
+                Hashtbl.add string_of_map_fold_primitive p n;
+            ) [
+                "Map.map_fold", Prim_map_map_fold;
+                "List.map_fold", Prim_list_map_fold;
+                "Coll.map_fold", Prim_coll_map_fold;
+            ]
+
             let of_string s = Hashtbl.find map_fold_primitive_of_string s
             let to_string prim =
                 try
@@ -470,6 +464,7 @@ module Prims = struct
                     Printf.eprintf "Debug: string_of_map_fold_primitive(%d) raised Not_found\n%!"
                         (Obj.magic prim : int);
                     raise Not_found
+            let is_primitive s = Hashtbl.mem map_fold_primitive_of_string s
         end
     end
 end

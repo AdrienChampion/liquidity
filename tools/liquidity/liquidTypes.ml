@@ -293,21 +293,18 @@ type prim_fold =
   | Prim_map_fold
   | Prim_set_fold
   | Prim_list_fold
-
   | Prim_coll_iter
   | Prim_coll_fold
 
 (** Allowed built-in primities for map applications *)
 type prim_map =
   | Prim_map_map
-  | Prim_set_map
   | Prim_list_map
   | Prim_coll_map
 
 (** Allowed built-in primities for map-fold applications *)
 type prim_map_fold =
   | Prim_map_map_fold
-  | Prim_set_map_fold
   | Prim_list_map_fold
   | Prim_coll_map_fold
 
@@ -355,7 +352,7 @@ and ('ty, 'a) exp_desc =
              inline: bool;
              bnd_val: ('ty, 'a) exp;
              body: ('ty, 'a) exp }
-  (** Let binding: {[let@@inline bnd_var = bnd_val in body ]} *)
+  (** Let binding: {[let\@\@inline bnd_var = bnd_val in body ]} *)
 
   | Var of string (** Simple variable : [x] *)
 
@@ -486,7 +483,7 @@ and ('ty, 'a) exp_desc =
       {[ match arg with
         | C1 (a1, a2) -> exp1
         | C2 (x1, x2, x3) -> exp2
-        | _ -> exp3 *)
+        | _ -> exp3 ]} *)
 
   | MatchNat of { arg: ('ty, 'a) exp;
                   plus_name: loc_name;

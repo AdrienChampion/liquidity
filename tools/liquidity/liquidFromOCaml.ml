@@ -20,70 +20,71 @@ type 'a ast_elt =
   | Syn_init of 'a init
 
 (* redefined keywords of the modified OCaml lexer *)
+let liquidity_keywords = [
+  "and", AND;
+  "as", AS;
+  "assert", ASSERT;
+  "begin", BEGIN;
+  (*    "class", CLASS; *)
+  (*    "constraint", CONSTRAINT; *)
+  "do", DO;
+  "done", DONE;
+  "downto", DOWNTO;
+  "else", ELSE;
+  "end", END;
+  (* "exception", EXCEPTION; *)
+  "external", EXTERNAL;
+  "false", FALSE;
+  "for", FOR;
+  "fun", FUN;
+  "function", FUNCTION;
+  (* "functor", FUNCTOR; *)
+  "if", IF;
+  "in", IN;
+  (* "include", INCLUDE; *)
+  (* "inherit", INHERIT; *)
+  (* "initializer", INITIALIZER; *)
+  (* "lazy", LAZY; *)
+  "let", LET;
+  "match", MATCH;
+  (* "entry", METHOD; *)
+  "contract", MODULE;
+  (* "mutable", MUTABLE; *)
+  (* "new", NEW; *)
+  (* "nonrec", NONREC; *)
+  (* "object", OBJECT; *)
+  "of", OF;
+  (* "open", OPEN; *)
+  "or", OR;
+  (*  "parser", PARSER; *)
+  (* "private", PRIVATE; *)
+  "rec", REC;
+  "sig", SIG;
+  "struct", STRUCT;
+  "then", THEN;
+  "to", TO;
+  "true", TRUE;
+  (* "try", TRY; *)
+  "type", TYPE;
+  "val", VAL;
+  (* "virtual", VIRTUAL; *)
+
+  (* "when", WHEN; *)
+  "while", WHILE;
+  "with", WITH;
+
+  "lor", INFIXOP3("lor"); (* Should be INFIXOP2 *)
+  "lxor", INFIXOP3("lxor"); (* Should be INFIXOP2 *)
+  "mod", INFIXOP3("mod");
+  "land", INFIXOP3("land");
+  "lsl", INFIXOP4("lsl");
+  "lsr", INFIXOP4("lsr");
+  "xor", INFIXOP3("xor"); (* Should be INFIXOP2 *)
+  "asr", INFIXOP4("asr")
+]
+
 let () =
-  LiquidOCamlLexer.define_keywords
-    [
-      "and", AND;
-      "as", AS;
-      "assert", ASSERT;
-      "begin", BEGIN;
-      (*    "class", CLASS; *)
-      (*    "constraint", CONSTRAINT; *)
-      "do", DO;
-      "done", DONE;
-      "downto", DOWNTO;
-      "else", ELSE;
-      "end", END;
-      (* "exception", EXCEPTION; *)
-      "external", EXTERNAL;
-      "false", FALSE;
-      "for", FOR;
-      "fun", FUN;
-      "function", FUNCTION;
-      (* "functor", FUNCTOR; *)
-      "if", IF;
-      "in", IN;
-      (* "include", INCLUDE; *)
-      (* "inherit", INHERIT; *)
-      (* "initializer", INITIALIZER; *)
-      (* "lazy", LAZY; *)
-      "let", LET;
-      "match", MATCH;
-      (* "entry", METHOD; *)
-      "contract", MODULE;
-      (* "mutable", MUTABLE; *)
-      (* "new", NEW; *)
-      (* "nonrec", NONREC; *)
-      (* "object", OBJECT; *)
-      "of", OF;
-      (* "open", OPEN; *)
-      "or", OR;
-      (*  "parser", PARSER; *)
-      (* "private", PRIVATE; *)
-      "rec", REC;
-      "sig", SIG;
-      "struct", STRUCT;
-      "then", THEN;
-      "to", TO;
-      "true", TRUE;
-      (* "try", TRY; *)
-      "type", TYPE;
-      "val", VAL;
-      (* "virtual", VIRTUAL; *)
-
-      (* "when", WHEN; *)
-      "while", WHILE;
-      "with", WITH;
-
-      "lor", INFIXOP3("lor"); (* Should be INFIXOP2 *)
-      "lxor", INFIXOP3("lxor"); (* Should be INFIXOP2 *)
-      "mod", INFIXOP3("mod");
-      "land", INFIXOP3("land");
-      "lsl", INFIXOP4("lsl");
-      "lsr", INFIXOP4("lsr");
-      "xor", INFIXOP3("xor"); (* Should be INFIXOP2 *)
-      "asr", INFIXOP4("asr")
-    ]
+  LiquidOCamlLexer.define_keywords liquidity_keywords
 
 let ident_counter = ref 0
 
@@ -91,7 +92,7 @@ let ident_counter = ref 0
 let minimal_version = 0.4
 
 (* The maximal version of liquidity files that are accepted by this compiler *)
-let maximal_version = 0.404
+let maximal_version = 0.405
 
 
 open Asttypes
@@ -1189,7 +1190,8 @@ let rec translate_code contracts env exp =
             [
               Nolabel, { pexp_desc = Pexp_fun (Nolabel,None, pat, body) };
               Nolabel, arg
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Fold.is_primitive (iter_coll^".iter") ->
       let body = translate_code contracts env body in
       let arg = translate_code contracts env arg in
       let arg_name, _, body = deconstruct_pat env pat body in
@@ -1204,7 +1206,8 @@ let rec translate_code contracts env exp =
             [ Nolabel, { pexp_desc = Pexp_fun (Nolabel,None, pat, body) };
               Nolabel, arg;
               Nolabel, acc;
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Fold.is_primitive (iter_coll^".fold") ->
       let arg = translate_code contracts env arg in
       let acc = translate_code contracts env acc in
       let body = translate_code contracts env body in
@@ -1218,7 +1221,8 @@ let rec translate_code contracts env exp =
                                                     "map") } ) },
             [ Nolabel, { pexp_desc = Pexp_fun (Nolabel,None, pat, body) };
               Nolabel, arg;
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Map.is_primitive (map_coll^".map") ->
       let arg = translate_code contracts env arg in
       let body = translate_code contracts env body in
       let arg_name, _, body = deconstruct_pat env pat body in
@@ -1232,7 +1236,8 @@ let rec translate_code contracts env exp =
             [ Nolabel, { pexp_desc = Pexp_fun (Nolabel,None, pat, body) };
               Nolabel, arg;
               Nolabel, acc;
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Map.Fold.is_primitive (map_fold_coll^".map_fold") ->
       let arg = translate_code contracts env arg in
       let acc = translate_code contracts env acc in
       let body = translate_code contracts env body in
@@ -1248,7 +1253,8 @@ let rec translate_code contracts env exp =
             [
               Nolabel, f_exp;
               Nolabel, arg
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Fold.is_primitive (iter_coll^".iter") ->
       let f = translate_code contracts env f_exp in
       let vloc = loc_of_loc vloc in
       let arg_name = "_iter_arg" in
@@ -1269,7 +1275,8 @@ let rec translate_code contracts env exp =
               Nolabel, f_exp;
               Nolabel, arg;
               Nolabel, acc;
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Fold.is_primitive (iter_coll^".fold") ->
       let f = translate_code contracts env f_exp in
       let arg_name = "_fold_arg" in
       let vloc = loc_of_loc vloc in
@@ -1289,7 +1296,8 @@ let rec translate_code contracts env exp =
             [
               Nolabel, f_exp;
               Nolabel, arg;
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Map.is_primitive (map_coll^".map") ->
       let f = translate_code contracts env f_exp in
       let arg_name = "_map_arg" in
       let vloc = loc_of_loc vloc in
@@ -1309,7 +1317,8 @@ let rec translate_code contracts env exp =
               Nolabel, f_exp;
               Nolabel, arg;
               Nolabel, acc;
-            ]) } ->
+            ]) }
+      when Liquid.Prims.Map.Fold.is_primitive (map_fold_coll^".map_fold") ->
       let f = translate_code contracts env f_exp in
       let arg_name = "_map_fold_arg" in
       let vloc = loc_of_loc vloc in

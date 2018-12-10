@@ -77,6 +77,8 @@ module Prims : sig
     val of_string : string -> primitive
     (** String representation of a primitive. *)
     val to_string : primitive -> string
+    (** True if the string corresponds to a primitive. *)
+    val is_primitive : string -> bool
 
     (** Fold primitives. *)
     module Fold : sig
@@ -84,6 +86,8 @@ module Prims : sig
         val of_string : string -> prim_fold
         (** String representation of a fold primitive. *)
         val to_string : prim_fold -> string
+        (** True if the string corresponds to a fold primitive. *)
+        val is_primitive : string -> bool
     end
 
     (** Map primitives. *)
@@ -92,6 +96,8 @@ module Prims : sig
         val of_string : string -> prim_map
         (** String representation of a map primitive. *)
         val to_string : prim_map -> string
+        (** True if the string corresponds to a map primitive. *)
+        val is_primitive : string -> bool
 
         (** Map/fold primitives. *)
         module Fold : sig
@@ -99,6 +105,8 @@ module Prims : sig
             val of_string : string -> prim_map_fold
             (** String representation of a map/fold primitive. *)
             val to_string : prim_map_fold -> string
+        (** True if the string corresponds to a map/fold primitive. *)
+        val is_primitive : string -> bool
         end
     end
 end
